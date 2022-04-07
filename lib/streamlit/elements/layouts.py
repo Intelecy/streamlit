@@ -25,7 +25,7 @@ SpecType = Union[int, Sequence[Union[int, float]]]
 
 
 class LayoutsMixin:
-    def container(self) -> "DeltaGenerator":
+    def container(self, css_classes: Optional[List[str]] = None) -> "DeltaGenerator":
         """Insert a multi-element container.
 
         Inserts an invisible container into your app that can be used to hold
@@ -35,6 +35,17 @@ class LayoutsMixin:
         To add elements to the returned container, you can use "with" notation
         (preferred) or just call methods directly on the returned object. See
         examples below.
+
+        Parameters
+        ----------
+        css_classes : list of strings
+            Optional list of CSS class names that are attached to the resulting
+            HTML element. Should be used sparingly and only when existing
+            styling and layout options are exhausted.
+
+            Note: There is no guarantee of the HTML structure inside or outside
+            this element. The CSS that targets this element _will_ be fragile
+            and potentially tied to specific Streamlit versions.
 
         Examples
         --------
@@ -66,7 +77,8 @@ class LayoutsMixin:
             https://doc-container2.streamlitapp.com/
             height: 480px
         """
-        return self.dg._block()
+
+        return self.dg._block(BlockProto(css_classes=css_classes))
 
     # TODO: Enforce that columns are not nested or in Sidebar
     def columns(
