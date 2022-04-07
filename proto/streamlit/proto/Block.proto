@@ -29,6 +29,7 @@ message Block {
   }
 
   bool allow_empty = 8;
+  repeated string css_classes = 10;
 
   message Vertical {
   }
