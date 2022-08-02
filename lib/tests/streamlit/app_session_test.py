@@ -215,6 +215,7 @@ class AppSessionTest(unittest.TestCase):
             uploaded_file_mgr=session._uploaded_file_mgr,
             initial_rerun_data=RerunData(),
             user_info={"email": "test@test.com"},
+            peephole=None,
         )
 
         self.assertIsNotNone(session._scriptrunner)

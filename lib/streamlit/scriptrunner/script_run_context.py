@@ -14,7 +14,7 @@
 
 from dataclasses import dataclass, field
 import threading
-from typing import Dict, Optional, List, Callable, Set
+from typing import Dict, Optional, List, Callable, Set, TYPE_CHECKING
 from typing_extensions import Final, TypeAlias
 
 from streamlit.errors import StreamlitAPIException
@@ -23,10 +23,28 @@ from streamlit.proto.ForwardMsg_pb2 import ForwardMsg
 from streamlit.state import SafeSessionState
 from streamlit.uploaded_file_manager import UploadedFileManager
 
+if TYPE_CHECKING:
+    from streamlit.web.server import Server
+    from streamlit.web.server.browser_websocket_handler import BrowserWebSocketHandler
+    from streamlit.stats import StatsManager
+
 LOGGER: Final = get_logger(__name__)
 
 
 UserInfo: TypeAlias = Dict[str, Optional[str]]
+
+
+@dataclass(frozen=True)
+class IntelecyPeephole:
+    ws: "BrowserWebSocketHandler"
+
+    @property
+    def server(self) -> "Server":
+        return self.ws._server
+
+    @property
+    def stats(self) -> "StatsManager":
+        return self.server._stats_mgr
 
 
 @dataclass
@@ -59,6 +77,7 @@ class ScriptRunContext:
     dg_stack: List["streamlit.delta_generator.DeltaGenerator"] = field(
         default_factory=list
     )
+    peephole: Optional[IntelecyPeephole] = None
 
     def reset(self, query_string: str = "", page_script_hash: str = "") -> None:
         self.cursors = {}

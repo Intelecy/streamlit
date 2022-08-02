@@ -45,6 +45,7 @@ from streamlit.scriptrunner import (
     ScriptRunner,
     ScriptRunnerEvent,
 )
+from .scriptrunner.script_run_context import IntelecyPeephole
 from streamlit.watcher import LocalSourcesWatcher
 
 LOGGER = get_logger(__name__)
@@ -83,6 +84,7 @@ class AppSession:
         message_enqueued_callback: Optional[Callable[[], None]],
         local_sources_watcher: LocalSourcesWatcher,
         user_info: Dict[str, Optional[str]],
+        peephole: Optional[IntelecyPeephole] = None,
     ):
         """Initialize the AppSession.
 
@@ -152,6 +154,8 @@ class AppSession:
 
         self._session_state = SessionState()
         self._user_info = user_info
+
+        self._peephole = peephole
 
         LOGGER.debug("AppSession initialized (id=%s)", self.id)
 
@@ -325,6 +329,7 @@ class AppSession:
             uploaded_file_mgr=self._uploaded_file_mgr,
             initial_rerun_data=initial_rerun_data,
             user_info=self._user_info,
+            peephole=self._peephole,
         )
         self._scriptrunner.on_event.connect(self._on_scriptrunner_event)
         self._scriptrunner.start()

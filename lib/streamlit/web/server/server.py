@@ -29,6 +29,7 @@ from typing import (
     Callable,
     List,
 )
+from typing import cast
 
 import click
 import tornado.concurrent
@@ -79,6 +80,7 @@ from .browser_websocket_handler import BrowserWebSocketHandler
 from .component_request_handler import ComponentRequestHandler
 from .session_client import SessionClient, SessionClientDisconnectedError
 from .stats_request_handler import StatsRequestHandler
+from ...scriptrunner.script_run_context import IntelecyPeephole
 
 LOGGER = get_logger(__name__)
 
@@ -644,6 +646,7 @@ Please report this bug at https://github.com/streamlit/streamlit/issues.
             message_enqueued_callback=self._enqueued_some_message,
             local_sources_watcher=local_sources_watcher,
             user_info=user_info,
+            peephole=IntelecyPeephole(ws=cast(BrowserWebSocketHandler, client)),
         )
 
         LOGGER.debug(

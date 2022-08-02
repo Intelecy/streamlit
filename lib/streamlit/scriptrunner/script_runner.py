@@ -38,11 +38,16 @@ from streamlit.state import (
     SafeSessionState,
 )
 from streamlit.uploaded_file_manager import UploadedFileManager
-from .script_run_context import ScriptRunContext, add_script_run_ctx, get_script_run_ctx
 from .script_requests import (
     ScriptRequests,
     RerunData,
     ScriptRequestType,
+)
+from .script_run_context import (
+    IntelecyPeephole,
+    ScriptRunContext,
+    add_script_run_ctx,
+    get_script_run_ctx,
 )
 
 LOGGER = get_logger(__name__)
@@ -102,6 +107,7 @@ class ScriptRunner:
         uploaded_file_mgr: UploadedFileManager,
         initial_rerun_data: RerunData,
         user_info: Dict[str, Optional[str]],
+        peephole: Optional[IntelecyPeephole] = None,
     ):
         """Initialize the ScriptRunner.
 
@@ -181,6 +187,8 @@ class ScriptRunner:
 
         # This is initialized in start()
         self._script_thread: Optional[threading.Thread] = None
+
+        self._peephole = peephole
 
     def __repr__(self) -> str:
         return util.repr_(self)
@@ -284,6 +292,7 @@ class ScriptRunner:
             uploaded_file_mgr=self._uploaded_file_mgr,
             page_script_hash=self._client_state.page_script_hash,
             user_info=self._user_info,
+            peephole=self._peephole,
         )
         add_script_run_ctx(threading.current_thread(), ctx)
 
