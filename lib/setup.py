@@ -19,7 +19,7 @@ import sys
 from setuptools.command.install import install
 
 
-VERSION = "1.11.1.post1"  # PEP-440
+VERSION = "1.11.1.post2"  # PEP-440
 
 NAME = "streamlit"
 

@@ -12,11 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import functools
 import hashlib
 import textwrap
 from types import MappingProxyType
-from typing import Dict, Optional, Union, TYPE_CHECKING
-from typing import Mapping
+from typing import (
+    Dict,
+    Optional,
+    Union,
+    TYPE_CHECKING,
+    TypeVar,
+    ParamSpec,
+    Mapping,
+    Callable,
+)
 
 from typing_extensions import Final, TypeAlias
 
@@ -83,27 +92,27 @@ ElementType: TypeAlias = str
 # not able to always rely on the proto as the type may be needed earlier.
 # Thankfully, in these cases (when value_type == "trigger_value"), the static
 # table here being slightly inaccurate should never pose a problem.
-ELEMENT_TYPE_TO_VALUE_TYPE: Final[
-    Mapping[ElementType, ValueFieldName]
-] = MappingProxyType(
-    {
-        "button": "trigger_value",
-        "download_button": "trigger_value",
-        "checkbox": "bool_value",
-        "camera_input": "file_uploader_state_value",
-        "color_picker": "string_value",
-        "date_input": "string_array_value",
-        "file_uploader": "file_uploader_state_value",
-        "multiselect": "int_array_value",
-        "number_input": "double_value",
-        "radio": "int_value",
-        "selectbox": "int_value",
-        "slider": "double_array_value",
-        "text_area": "string_value",
-        "text_input": "string_value",
-        "time_input": "string_value",
-        "component_instance": "json_value",
-    }
+ELEMENT_TYPE_TO_VALUE_TYPE: Final[Mapping[ElementType, ValueFieldName]] = (
+    MappingProxyType(
+        {
+            "button": "trigger_value",
+            "download_button": "trigger_value",
+            "checkbox": "bool_value",
+            "camera_input": "file_uploader_state_value",
+            "color_picker": "string_value",
+            "date_input": "string_array_value",
+            "file_uploader": "file_uploader_state_value",
+            "multiselect": "int_array_value",
+            "number_input": "double_value",
+            "radio": "int_value",
+            "selectbox": "int_value",
+            "slider": "double_array_value",
+            "text_area": "string_value",
+            "text_input": "string_value",
+            "time_input": "string_value",
+            "component_instance": "json_value",
+        }
+    )
 )
 
 
@@ -114,6 +123,31 @@ class NoValue:
     """
 
     pass
+
+
+P = ParamSpec("P")
+R = TypeVar("R")
+
+
+def persist_logging_context_for_callback(cb: Callable[P, R]) -> Callable[P, R]:
+    """Extend the logging context of a callback with the context present at its creation.
+
+    Streamlit widget callbacks do not inherit the logging context of the thread in which they were created.
+    This function lets us associate the callback with a static snapshot of the logging context from whence it was created.
+    """
+    try:
+        from structlog.contextvars import bound_contextvars, get_contextvars
+    except ImportError:
+        return cb
+
+    context = get_contextvars()
+
+    @functools.wraps(cb)
+    def cb_with_context(*args: P.args, **kwargs: P.kwargs) -> R:
+        with bound_contextvars(streamlit_callback=True, **context):
+            return cb(*args, **kwargs)
+
+    return cb_with_context
 
 
 def register_widget(
@@ -215,13 +249,17 @@ def register_widget(
             )
         )
 
+    on_change_handler_with_preserved_logging_context = (
+        persist_logging_context_for_callback(on_change_handler) if on_change_handler is not None else None
+    )
+
     # Create the widget's updated metadata, and register it with session_state.
     metadata = WidgetMetadata(
         widget_id,
         deserializer,
         serializer,
         value_type=ELEMENT_TYPE_TO_VALUE_TYPE[element_type],
-        callback=on_change_handler,
+        callback=on_change_handler_with_preserved_logging_context,
         callback_args=args,
         callback_kwargs=kwargs,
     )
